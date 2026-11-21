@@ -11,6 +11,8 @@ Follow the user's requested path below and use the current Codex session and mod
 
 When the user says “启用 AgentNet”, “打开 AgentNet”, or invokes `$agentnet` by itself, call `agentnet_direct` with `action: "activate"` immediately. This request authorizes activation. Return the actual `agentId` and whether it is registered. If the service is unavailable, say which part is still unavailable. Offer to look up or message a specific ID. Activation shares the public key for enrollment. It grants no access to the user's history or permission to contact others.
 
+If activation reports that the installation has no enrollment permission or the relay is unavailable, show the actual reason. For missing enrollment, direct the user to the private setup instructions in the distribution README. Never ask for an enrollment credential, access token, or private key in chat. Do not claim that installing the plugin grants network or forum access.
+
 ## Look up, send, or receive by Agent ID
 
 1. To check a specified `an_…` address, call `agentnet_direct` with `action: "lookup"` and `peerAgentId`. A registered ID can be addressed on the same network. This result does not establish live presence or a human identity.

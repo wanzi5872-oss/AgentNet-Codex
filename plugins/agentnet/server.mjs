@@ -6386,12 +6386,12 @@ var init_stdio2 = __esm({
         this.onclose?.();
       }
       send(message) {
-        return new Promise((resolve) => {
+        return new Promise((resolve2) => {
           const json2 = serializeMessage(message);
           if (this._stdout.write(json2)) {
-            resolve();
+            resolve2();
           } else {
-            this._stdout.once("drain", resolve);
+            this._stdout.once("drain", resolve2);
           }
         });
       }
@@ -9350,7 +9350,7 @@ var require_compile = __commonJS({
       const schOrFunc = root.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve.call(this, root, ref);
+      let _sch = resolve2.call(this, root, ref);
       if (_sch === void 0) {
         const schema = (_a = root.localRefs) === null || _a === void 0 ? void 0 : _a[ref];
         const { schemaId } = this.opts;
@@ -9377,7 +9377,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve(root, ref) {
+    function resolve2(root, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -10241,7 +10241,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve(baseURI, relativeURI, options) {
+    function resolve2(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const {
         parsed: baseParsed,
@@ -10632,7 +10632,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve,
+      resolve: resolve2,
       resolveComponent,
       equal,
       serialize,
@@ -13624,9 +13624,9 @@ var require_dist = __commonJS({
 // integrations/codex/plugin-runtime.mjs
 init_stdio2();
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { mkdir, readFile, writeFile, link, unlink } from "node:fs/promises";
-import { randomUUID as randomUUID3 } from "node:crypto";
+import { createPublicKey as createPublicKey2, randomUUID as randomUUID3 } from "node:crypto";
 
 // packages/core/index.mjs
 import { createCipheriv, createDecipheriv, createHash, createPublicKey, generateKeyPairSync, randomBytes, randomUUID, sign, verify } from "node:crypto";
@@ -13646,6 +13646,26 @@ function createIdentity() {
     privateKeyEncoding: { type: "pkcs8", format: "pem" }
   });
   return { agentId: deriveAgentId(publicKey), publicKey, privateKey };
+}
+var generateEncryptionKey = () => randomBytes(32).toString("base64");
+function encryptionKey(key) {
+  const bytes = Buffer.from(key, "base64");
+  if (bytes.length !== 32) throw new Error("Encryption key must contain 32 bytes.");
+  return bytes;
+}
+function encryptJson(value, key) {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", encryptionKey(key), iv);
+  cipher.setAAD(Buffer.from("AgentNet:json:v1"));
+  const ciphertext = Buffer.concat([cipher.update(JSON.stringify(value), "utf8"), cipher.final()]);
+  return { version: 1, algorithm: "aes-256-gcm", iv: iv.toString("base64"), tag: cipher.getAuthTag().toString("base64"), ciphertext: ciphertext.toString("base64") };
+}
+function decryptJson(envelope, key) {
+  if (envelope.version !== 1 || envelope.algorithm !== "aes-256-gcm") throw new Error("Unsupported encrypted envelope.");
+  const decipher = createDecipheriv("aes-256-gcm", encryptionKey(key), Buffer.from(envelope.iv, "base64"));
+  decipher.setAAD(Buffer.from("AgentNet:json:v1"));
+  decipher.setAuthTag(Buffer.from(envelope.tag, "base64"));
+  return JSON.parse(Buffer.concat([decipher.update(Buffer.from(envelope.ciphertext, "base64")), decipher.final()]).toString("utf8"));
 }
 
 // apps/local-server/direct.mjs
@@ -19943,7 +19963,7 @@ var Protocol = class {
           return;
         }
         const pollInterval = task2.pollInterval ?? this._options?.defaultTaskPollInterval ?? 1e3;
-        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
         options?.signal?.throwIfAborted();
       }
     } catch (error2) {
@@ -19960,7 +19980,7 @@ var Protocol = class {
    */
   request(request, resultSchema, options) {
     const { relatedRequestId, resumptionToken, onresumptiontoken, task, relatedTask } = options ?? {};
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve2, reject) => {
       const earlyReject = (error2) => {
         reject(error2);
       };
@@ -20038,7 +20058,7 @@ var Protocol = class {
           if (!parseResult.success) {
             reject(parseResult.error);
           } else {
-            resolve(parseResult.data);
+            resolve2(parseResult.data);
           }
         } catch (error2) {
           reject(error2);
@@ -20300,12 +20320,12 @@ var Protocol = class {
       }
     } catch {
     }
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve2, reject) => {
       if (signal.aborted) {
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
         return;
       }
-      const timeoutId = setTimeout(resolve, interval);
+      const timeoutId = setTimeout(resolve2, interval);
       signal.addEventListener("abort", () => {
         clearTimeout(timeoutId);
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
@@ -21452,7 +21472,7 @@ var McpServer = class {
     let task = createTaskResult.task;
     const pollInterval = task.pollInterval ?? 5e3;
     while (task.status !== "completed" && task.status !== "failed" && task.status !== "cancelled") {
-      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
       const updatedTask = await extra.taskStore.getTask(taskId);
       if (!updatedTask) {
         throw new McpError(ErrorCode.InternalError, `Task ${taskId} not found during polling`);
@@ -22130,32 +22150,59 @@ if (process.argv[1]?.replaceAll("\\", "/").endsWith("/mcp-server/index.mjs")) {
 var base = "https://agentnet-codex-relay.agentnet-wanzi5872.workers.dev";
 var tools = ["agentnet_disclaimer", "agentnet_direct", "agentnet_directory_search", "agentnet_directory_listen", "agentnet_directory_contact", "agentnet_forum_search", "agentnet_forum_read", "agentnet_forum_post", "agentnet_forum_comment"];
 var dataDir = process.env.AGENTNET_CODEX_DATA_DIR || join(homedir(), ".agentnet-codex");
-var json = (path) => readFile(path, "utf8").then(JSON.parse);
+var json = (path) => readFile(path, "utf8").then((text) => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("AgentNet \u672C\u673A\u914D\u7F6E\u4E0D\u662F\u6709\u6548\u7684 JSON\u3002");
+  }
+});
 var optional2 = (path) => json(path).catch((error2) => {
   if (error2.code === "ENOENT") return {};
   throw error2;
 });
-async function localIdentity(dir) {
-  const identityPath = join(dir, "identity.json");
-  try {
-    return await json(identityPath);
-  } catch (error2) {
-    if (error2.code !== "ENOENT") throw error2;
-  }
+async function writeOnce(dir, name, text) {
   await mkdir(dir, { recursive: true, mode: 448 });
   const temporary = join(dir, randomUUID3() + ".tmp");
   try {
-    await writeFile(temporary, JSON.stringify(createIdentity()), { mode: 384, flag: "wx" });
+    await writeFile(temporary, text, { mode: 384, flag: "wx" });
     try {
-      await link(temporary, identityPath);
+      await link(temporary, join(dir, name));
     } catch (error2) {
       if (error2.code !== "EEXIST") throw error2;
     }
-    return await json(identityPath);
   } finally {
     await unlink(temporary).catch(() => {
     });
   }
+}
+async function readIdentity(dir) {
+  const value = await optional2(join(dir, "identity.json"));
+  if (value.algorithm === "aes-256-gcm") return decryptJson(value, await readFile(join(dir, "identity.key"), "utf8"));
+  return value.agentId ? value : null;
+}
+async function saveIdentity(dir, identity) {
+  await writeOnce(dir, "identity.key", generateEncryptionKey());
+  const key = await readFile(join(dir, "identity.key"), "utf8");
+  await writeOnce(dir, "identity.json", JSON.stringify(encryptJson(identity, key)));
+  return readIdentity(dir);
+}
+async function localIdentity(dir) {
+  return await readIdentity(dir) ?? await saveIdentity(dir, createIdentity());
+}
+async function importExisting(installDir, dir = dataDir) {
+  const old = resolve(installDir, ".agentnet");
+  const pilot = await optional2(join(old, "direct-pilot.json"));
+  if (pilot.relayUrl !== base || typeof pilot.enrollmentToken !== "string" || pilot.enrollmentToken.length < 24 || pilot.enrollmentToken.length > 256) throw new Error("\u8FD9\u4E2A\u76EE\u5F55\u6CA1\u6709\u5F53\u524D AgentNet \u7F51\u7EDC\u7684\u65E7\u5165\u7F51\u914D\u7F6E\u3002");
+  const { identity } = decryptJson(await json(join(old, "vault.json")), await readFile(join(old, "storage.key"), "utf8"));
+  if (!identity || deriveAgentId(identity.publicKey) !== identity.agentId || createPublicKey2(identity.privateKey).export({ type: "spki", format: "pem" }) !== identity.publicKey) throw new Error("\u65E0\u6CD5\u6838\u5B9E\u65E7\u7248 AgentNet \u8EAB\u4EFD\u3002");
+  const existing = await readIdentity(dir);
+  if (existing && existing.agentId !== identity.agentId) throw new Error("\u63D2\u4EF6\u5DF2\u6709\u4E0D\u540C\u8EAB\u4EFD\uFF0C\u5DF2\u4FDD\u7559\u4E24\u4E2A\u8EAB\u4EFD\uFF1B\u8BF7\u5148\u51B3\u5B9A\u4FDD\u7559\u54EA\u4E00\u4E2A\u3002");
+  const saved = existing ?? await saveIdentity(dir, identity);
+  if (saved.agentId !== identity.agentId) throw new Error("\u63D2\u4EF6\u8EAB\u4EFD\u5DF2\u7531\u53E6\u4E00\u5BF9\u8BDD\u5EFA\u7ACB\uFF0C\u672A\u8986\u76D6\u73B0\u6709\u8EAB\u4EFD\u3002");
+  const { proxyUrl } = await optional2(join(old, "network.json"));
+  await writeOnce(dir, "connection.json", JSON.stringify({ enrollmentToken: pilot.enrollmentToken, ...proxyUrl ? { proxyUrl } : {} }));
+  return { imported: true, agentId: identity.agentId };
 }
 async function createPluginRuntime(dir = dataDir, fetcher) {
   const config2 = await optional2(join(dir, "connection.json"));
@@ -22186,6 +22233,11 @@ async function createPluginRuntime(dir = dataDir, fetcher) {
   };
 }
 async function start() {
+  if (process.argv.length > 2) {
+    if (process.argv[2] !== "--import-existing" || process.argv.length !== 4) throw new Error("\u7528\u6CD5\uFF1Anode server.mjs --import-existing <\u65E7 AgentNet \u5B89\u88C5\u76EE\u5F55>");
+    console.log(JSON.stringify(await importExisting(process.argv[3])));
+    return;
+  }
   const server = buildMcpServer(void 0, { transport: await createPluginRuntime(), enabledTools: tools });
   await server.connect(new StdioServerTransport());
 }

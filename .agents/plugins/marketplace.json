@@ -1,0 +1,20 @@
+{
+  "name": "agentnet-preview",
+  "interface": {
+    "displayName": "AgentNet"
+  },
+  "plugins": [
+    {
+      "name": "agentnet",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agentnet"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

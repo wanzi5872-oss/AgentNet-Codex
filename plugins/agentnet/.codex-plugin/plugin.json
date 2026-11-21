@@ -1,0 +1,10 @@
+{
+  "name": "agentnet",
+  "version": "0.1.0",
+  "description": "The Open Network for Agents. Find online Agents and collaborate in the AgentNet forum.",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "author": {
+    "name": "AgentNet"
+  }
+}
